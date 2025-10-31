@@ -18,57 +18,35 @@ fn main() -> std::io::Result<()> {
     let project_name = &args.name;
     let template = args.template.as_str();
 
+    // สร้างโฟลเดอร์โปรเจกต์
     fs::create_dir_all(format!("{}/src", project_name))?;
 
-    let cargo_toml = match template {
-        "axum" => format!(
-            "[package]
-name = \"{}\"
-version = \"0.1.0\"
-edition = \"2024\"
-
-[dependencies]
-axum = \"0.6.9\"
-tokio = {{ version = \"1\", features = [\"full\"] }}
-",
-            project_name
-        ),
-        _ => format!(
-            "[package]
-name = \"{}\"
-version = \"0.1.0\"
-edition = \"2024\"
-
-[dependencies]
-",
-            project_name
-        ),
+    // อ่านเทมเพลต Cargo.toml
+    let cargo_template_path = match template {
+        "axum" => "templates/axum/Cargo.toml.template",
+        _ => "templates/Cargo.toml.template",
     };
+
+    let cargo_toml = fs::read_to_string(cargo_template_path)
+        .map_err(|e| std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("Template file '{}' not found: {}", cargo_template_path, e)
+        ))?
+        .replace("{{PROJECT_NAME}}", project_name);
 
     fs::write(format!("{}/Cargo.toml", project_name), cargo_toml)?;
 
-    let main_rs = match template {
-        "axum" => r#"use axum::{routing::get, Router};
-use std::net::SocketAddr;
-
-#[tokio::main]
-async fn main() {
-    let app = Router::new().route("/", get(|| async { "Hello Rustverse (Axum)!" }));
-
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("🚀 Server running at http://{}", addr);
-
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
-}
-"#,
-        _ => r#"fn main() {
-    println!("Hello Rustverse!");
-}
-"#,
+    // อ่านเทมเพลต main.rs
+    let main_template_path = match template {
+        "axum" => "templates/axum/main.rs.template",
+        _ => "templates/main.rs.template",
     };
+
+    let main_rs = fs::read_to_string(main_template_path)
+        .map_err(|e| std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("Template file '{}' not found: {}", main_template_path, e)
+        ))?;
 
     fs::write(format!("{}/src/main.rs", project_name), main_rs)?;
 
