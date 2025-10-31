@@ -6,6 +6,7 @@ const BASIC_CARGO_TEMPLATE: &str = include_str!("../templates/Cargo.toml.templat
 const BASIC_MAIN_TEMPLATE: &str = include_str!("../templates/main.rs.template");
 const AXUM_CARGO_TEMPLATE: &str = include_str!("../templates/axum/Cargo.toml.template");
 const AXUM_MAIN_TEMPLATE: &str = include_str!("../templates/axum/main.rs.template");
+const GITIGNORE_TEMPLATE: &str = include_str!("../templates/.gitignore.template");
 
 /// Simple Rustverse CLI
 #[derive(Parser)]
@@ -39,6 +40,16 @@ fn main() -> std::io::Result<()> {
 
     // สร้าง main.rs
     fs::write(format!("{}/src/main.rs", project_name), main_template)?;
+
+    // สร้าง .gitignore
+    fs::write(format!("{}/.gitignore", project_name), GITIGNORE_TEMPLATE)?;
+
+    // สร้าง git repository
+    std::process::Command::new("git")
+        .args(&["init"])
+        .current_dir(project_name)
+        .output()
+        .ok(); // Ignore errors if git is not installed
 
     println!("✅ Project '{}' created successfully!", project_name);
     println!("👉 cd {} && cargo run", project_name);
