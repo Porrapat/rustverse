@@ -1,6 +1,12 @@
 use std::fs;
 use clap::Parser;
 
+// Embed templates at compile time
+const BASIC_CARGO_TEMPLATE: &str = include_str!("../templates/Cargo.toml.template");
+const BASIC_MAIN_TEMPLATE: &str = include_str!("../templates/main.rs.template");
+const AXUM_CARGO_TEMPLATE: &str = include_str!("../templates/axum/Cargo.toml.template");
+const AXUM_MAIN_TEMPLATE: &str = include_str!("../templates/axum/main.rs.template");
+
 /// Simple Rustverse CLI
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -21,34 +27,18 @@ fn main() -> std::io::Result<()> {
     // สร้างโฟลเดอร์โปรเจกต์
     fs::create_dir_all(format!("{}/src", project_name))?;
 
-    // อ่านเทมเพลต Cargo.toml
-    let cargo_template_path = match template {
-        "axum" => "templates/axum/Cargo.toml.template",
-        _ => "templates/Cargo.toml.template",
+    // เลือกเทมเพลตที่เหมาะสม
+    let (cargo_template, main_template) = match template {
+        "axum" => (AXUM_CARGO_TEMPLATE, AXUM_MAIN_TEMPLATE),
+        _ => (BASIC_CARGO_TEMPLATE, BASIC_MAIN_TEMPLATE),
     };
 
-    let cargo_toml = fs::read_to_string(cargo_template_path)
-        .map_err(|e| std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!("Template file '{}' not found: {}", cargo_template_path, e)
-        ))?
-        .replace("{{PROJECT_NAME}}", project_name);
-
+    // สร้าง Cargo.toml โดยแทนที่ placeholder
+    let cargo_toml = cargo_template.replace("{{PROJECT_NAME}}", project_name);
     fs::write(format!("{}/Cargo.toml", project_name), cargo_toml)?;
 
-    // อ่านเทมเพลต main.rs
-    let main_template_path = match template {
-        "axum" => "templates/axum/main.rs.template",
-        _ => "templates/main.rs.template",
-    };
-
-    let main_rs = fs::read_to_string(main_template_path)
-        .map_err(|e| std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!("Template file '{}' not found: {}", main_template_path, e)
-        ))?;
-
-    fs::write(format!("{}/src/main.rs", project_name), main_rs)?;
+    // สร้าง main.rs
+    fs::write(format!("{}/src/main.rs", project_name), main_template)?;
 
     println!("✅ Project '{}' created successfully!", project_name);
     println!("👉 cd {} && cargo run", project_name);
